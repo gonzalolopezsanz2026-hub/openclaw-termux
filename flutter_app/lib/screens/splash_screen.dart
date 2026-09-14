@@ -130,7 +130,7 @@ class _SplashScreenState extends State<SplashScreen>
           final bashOk = status['binBashExists'] == true;
           final bypassOk = status['bypassInstalled'] == true;
 
-          // Core rootfs must exist — can't repair without it.
+          // Core rootfs must exist - can't repair without it.
           if (rootfsOk && bashOk) {
             // The bypass is a cheap native file write, so it is safe to do
             // here and may be all that is missing.
@@ -140,7 +140,7 @@ class _SplashScreenState extends State<SplashScreen>
             }
             setupComplete = await NativeBridge.isBootstrapComplete();
             // Anything still missing (Node.js / OpenClaw) is a long download
-            // or install — hand it to the wizard.
+            // or install - hand it to the wizard.
             repairMode = !setupComplete;
           }
         } catch (_) {}

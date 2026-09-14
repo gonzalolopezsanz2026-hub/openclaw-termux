@@ -90,7 +90,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   const SizedBox(height: 8),
                   Text(
                     widget.repairMode
-                        ? 'Some components are missing. Reinstalling them — '
+                        ? 'Some components are missing. Reinstalling them - '
                             'the Ubuntu rootfs is kept, so this is quicker than a full setup.'
                         : _started
                             ? 'Setting up the environment. This may take several minutes.'

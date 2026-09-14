@@ -140,7 +140,7 @@ fetch_for_abi() {
         echo "  [$jni_abi] WARN: libandroid-shmem not found"
     fi
 
-    echo "  [$jni_abi] OK — $(ls "$out_dir"/ | tr '\n' ' ')"
+    echo "  [$jni_abi] OK - $(ls "$out_dir"/ | tr '\n' ' ')"
 }
 
 echo "=== Fetching PRoot + libtalloc from Termux packages ==="

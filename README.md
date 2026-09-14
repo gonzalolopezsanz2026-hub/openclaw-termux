@@ -13,7 +13,7 @@
   <img src="assets/ic_launcher.png" alt="OpenClaw App Mockup" width="700"/>
 </p>
 
-> Run **OpenClaw AI Gateway** on Android — standalone Flutter app with built-in terminal, web dashboard, optional dev tools, and one-tap setup. Also available as a Termux CLI package.
+> Run **OpenClaw AI Gateway** on Android - standalone Flutter app with built-in terminal, web dashboard, optional dev tools, and one-tap setup. Also available as a Termux CLI package.
 
 ---
 
@@ -21,7 +21,7 @@
 
 <p align="center">
   <a href="https://bloome.im/agent/join/0qrf0mWD?ref=TPKB3AAW" target="_blank">
-    <img src="assets/bloome.png" alt="Bloome – Your AI Clone, Working 24/7" width="700"/>
+    <img src="assets/bloome.png" alt="Bloome - Your AI Clone, Working 24/7" width="700"/>
   </a>
 </p>
 
@@ -31,13 +31,13 @@
   </a>
 </p>
 
-**[Bloome](https://bloome.im/app?ref=TPKB3AAW&utm_medium=github&utm_source=mithun50-openclaw-termux-ivor-202606)** is the IM platform built for multi-agent collaboration — where AI agents join your group chats as teammates, not just tools. Creators, coaches, therapists, advisors, and developers deploy **AI clones of themselves** that handle every audience conversation at any scale, 24/7.
+**[Bloome](https://bloome.im/app?ref=TPKB3AAW&utm_medium=github&utm_source=mithun50-openclaw-termux-ivor-202606)** is the IM platform built for multi-agent collaboration - where AI agents join your group chats as teammates, not just tools. Creators, coaches, therapists, advisors, and developers deploy **AI clones of themselves** that handle every audience conversation at any scale, 24/7.
 
-- **Deploy your AI clone** — configure it once with your expertise, tone, and knowledge
-- **Handle every conversation** — your clone talks to your audience so you don't have to
-- **Charge subscribers** — your expertise becomes a product. Free to start
-- **Multi-agent workspace** — AI agents with names, memory, and roles work together in shared group chats
-- **Works with any LLM** — build agents on Claude, GPT, Gemini, and more
+- **Deploy your AI clone** - configure it once with your expertise, tone, and knowledge
+- **Handle every conversation** - your clone talks to your audience so you don't have to
+- **Charge subscribers** - your expertise becomes a product. Free to start
+- **Multi-agent workspace** - AI agents with names, memory, and roles work together in shared group chats
+- **Works with any LLM** - build agents on Claude, GPT, Gemini, and more
 
 > Your expertise, working while you sleep. [Join Bloome today](https://bloome.im/app?ref=TPKB3AAW&utm_medium=github&utm_source=mithun50-openclaw-termux-ivor-202606) and deploy your AI clone for free.
 
@@ -62,7 +62,7 @@
 
 ## What is OpenClaw?
 
-OpenClaw brings the [OpenClaw](https://github.com/openclaw/openclaw) AI gateway to Android. It sets up a full Ubuntu environment via proot, installs Node.js and OpenClaw, and provides a native Flutter UI to manage everything — no root required.
+OpenClaw brings the [OpenClaw](https://github.com/openclaw/openclaw) AI gateway to Android. It sets up a full Ubuntu environment via proot, installs Node.js and OpenClaw, and provides a native Flutter UI to manage everything - no root required.
 
 ### Two Ways to Use
 
@@ -79,21 +79,21 @@ OpenClaw brings the [OpenClaw](https://github.com/openclaw/openclaw) AI gateway 
 ## Features
 
 ### Flutter App
-- **One-Tap Setup** — Downloads Ubuntu rootfs, Node.js 22, and OpenClaw automatically
-- **Built-in Terminal** — Full terminal emulator with extra keys toolbar, copy/paste, clickable URLs
-- **Gateway Controls** — Start/stop gateway with status indicator and health checks
-- **AI Providers** — Configure API keys and select models for 9 providers (Anthropic, OpenAI, Google Gemini, OpenRouter, NVIDIA NIM, DeepSeek, xAI, MiniMax, Ollama)
-- **SSH Remote Access** — Start/stop SSH server, set root password, view connection info with copyable commands
-- **Configure Menu** — Run `openclaw configure` in a built-in terminal to manage gateway settings
-- **Node Device Capabilities** — 9 capabilities (21 commands) exposed to AI via WebSocket node protocol
-- **Token URL Display** — Captures auth token from onboarding, shows it with a copy button
-- **Web Dashboard** — Embedded WebView loads the dashboard with authentication token
-- **View Logs** — Real-time gateway log viewer with search/filter
-- **Onboarding** — Configure API keys and binding directly in-app
-- **Optional Packages** — Install Go (Golang), Homebrew, and OpenSSH as optional dev tools
-- **Settings** — Auto-start, battery optimization, system info, package status, re-run setup
-- **Foreground Service** — Keeps the gateway alive in the background with uptime tracking
-- **Setup Notifications** — Progress bar notifications during environment setup
+- **One-Tap Setup** - Downloads Ubuntu rootfs, Node.js 22, and OpenClaw automatically
+- **Built-in Terminal** - Full terminal emulator with extra keys toolbar, copy/paste, clickable URLs
+- **Gateway Controls** - Start/stop gateway with status indicator and health checks
+- **AI Providers** - Configure API keys and select models for 9 providers (Anthropic, OpenAI, Google Gemini, OpenRouter, NVIDIA NIM, DeepSeek, xAI, MiniMax, Ollama)
+- **SSH Remote Access** - Start/stop SSH server, set root password, view connection info with copyable commands
+- **Configure Menu** - Run `openclaw configure` in a built-in terminal to manage gateway settings
+- **Node Device Capabilities** - 9 capabilities (21 commands) exposed to AI via WebSocket node protocol
+- **Token URL Display** - Captures auth token from onboarding, shows it with a copy button
+- **Web Dashboard** - Embedded WebView loads the dashboard with authentication token
+- **View Logs** - Real-time gateway log viewer with search/filter
+- **Onboarding** - Configure API keys and binding directly in-app
+- **Optional Packages** - Install Go (Golang), Homebrew, and OpenSSH as optional dev tools
+- **Settings** - Auto-start, battery optimization, system info, package status, re-run setup
+- **Foreground Service** - Keeps the gateway alive in the background with uptime tracking
+- **Setup Notifications** - Progress bar notifications during environment setup
 
 ### Optional Packages
 
@@ -106,9 +106,9 @@ After the initial setup completes, you can optionally install development tools 
 | **OpenSSH** | `apt install openssh-server` | ~10 MB |
 
 These are accessible from:
-- **Setup Wizard** — Package cards appear after setup completes
-- **Dashboard** — "Packages" card in Quick Actions
-- **Settings** — Shows installation status under System Info
+- **Setup Wizard** - Package cards appear after setup completes
+- **Dashboard** - "Packages" card in Quick Actions
+- **Settings** - Shows installation status under System Info
 
 ### Node Device Capabilities
 
@@ -139,7 +139,7 @@ That is **9 capabilities / 21 commands**. Before each gateway start the app patc
 }
 ```
 
-> **Note:** versions up to v1.8.7 wrote `gateway.nodes.allowCommands` / `denyCommands`, which OpenClaw does not read — so classified commands like `camera.snap` and `screen.record` were never actually authorised. Fixed in v2026.9.14 ([#81](https://github.com/mithun50/openclaw-termux/issues/81), [#95](https://github.com/mithun50/openclaw-termux/issues/95)).
+> **Note:** versions up to v1.8.7 wrote `gateway.nodes.allowCommands` / `denyCommands`, which OpenClaw does not read - so classified commands like `camera.snap` and `screen.record` were never actually authorised. Fixed in v2026.9.14 ([#81](https://github.com/mithun50/openclaw-termux/issues/81), [#95](https://github.com/mithun50/openclaw-termux/issues/95)).
 
 #### Using a capability from the AI
 
@@ -153,23 +153,23 @@ openclawx nodes list                 # should list the Android device
 openclawx nodes describe --node <id> # shows effective invoke commands
 ```
 
-Camera, screen, sensor, flash and location commands need the app in the foreground — the app is brought forward automatically when a request arrives, so keep the screen unlocked.
+Camera, screen, sensor, flash and location commands need the app in the foreground - the app is brought forward automatically when a request arrives, so keep the screen unlocked.
 
 ### Termux CLI
-- **One-Command Setup** — Installs proot-distro, Ubuntu, Node.js 22, and OpenClaw
-- **Bionic Bypass** — Fixes `os.networkInterfaces()` crash on Android's Bionic libc
-- **Smart Loading** — Shows spinner until the gateway is ready
-- **Pass-through Commands** — Run any OpenClaw command via `openclawx`
+- **One-Command Setup** - Installs proot-distro, Ubuntu, Node.js 22, and OpenClaw
+- **Bionic Bypass** - Fixes `os.networkInterfaces()` crash on Android's Bionic libc
+- **Smart Loading** - Shows spinner until the gateway is ready
+- **Pass-through Commands** - Run any OpenClaw command via `openclawx`
 
 ---
 
 ## Important Warnings
 
-> **Storage Permission** — This app does **NOT** need full storage access to function. If prompted, **deny** the storage permission unless you specifically need proot to access `/sdcard`. Granting `MANAGE_EXTERNAL_STORAGE` allows the proot environment to read and modify **all files** on your device including photos, downloads, and documents. Previous versions requested this permission automatically on launch, which could lead to unintended data loss (see [#67](https://github.com/mithun50/openclaw-termux/issues/67), [#63](https://github.com/mithun50/openclaw-termux/issues/63)). This has been fixed — storage access is now opt-in from Settings only.
+> **Storage Permission** - This app does **NOT** need full storage access to function. If prompted, **deny** the storage permission unless you specifically need proot to access `/sdcard`. Granting `MANAGE_EXTERNAL_STORAGE` allows the proot environment to read and modify **all files** on your device including photos, downloads, and documents. Previous versions requested this permission automatically on launch, which could lead to unintended data loss (see [#67](https://github.com/mithun50/openclaw-termux/issues/67), [#63](https://github.com/mithun50/openclaw-termux/issues/63)). This has been fixed - storage access is now opt-in from Settings only.
 
-> **Battery Optimization** — Disable battery optimization for the app in Android Settings to prevent Android from killing the gateway process in the background. Without this, the gateway may crash silently after a few minutes.
+> **Battery Optimization** - Disable battery optimization for the app in Android Settings to prevent Android from killing the gateway process in the background. Without this, the gateway may crash silently after a few minutes.
 
-> **First Launch** — The initial setup downloads ~500MB (Ubuntu rootfs + Node.js). Ensure you have a stable internet connection and sufficient storage before starting.
+> **First Launch** - The initial setup downloads ~500MB (Ubuntu rootfs + Node.js). Ensure you have a stable internet connection and sufficient storage before starting.
 
 ---
 
@@ -399,7 +399,7 @@ SSH lets you reach the Ubuntu proot environment from a computer on the same netw
 
 1. Install OpenSSH: **Settings > Packages > OpenSSH** (or `openclawx shell` then `apt install -y openssh-server`).
 2. Open the **SSH** screen in the app.
-3. Tap **Set Root Password** and choose a strong password. **This step is mandatory** — the server refuses to start without it.
+3. Tap **Set Root Password** and choose a strong password. **This step is mandatory** - the server refuses to start without it.
 4. Tap **Start SSH**. The screen then shows the exact `ssh` command to run, with a copy button.
 5. From your computer, run the command shown, for example:
 
@@ -417,16 +417,16 @@ ssh root@192.168.1.42 -p 8022
 | `PermitEmptyPasswords` | `no` | Prevents a passwordless root shell |
 | `ListenAddress` | `0.0.0.0` | Binds all interfaces so it survives VPN/Wi-Fi changes ([#61](https://github.com/mithun50/openclaw-termux/issues/61)) |
 
-> **Security:** because `ListenAddress` is `0.0.0.0`, anyone on your Wi-Fi can reach port 8022. Your root password is the only thing protecting the device — use a strong one, and stop the SSH server when you are done. On untrusted networks (cafés, hotels, offices) leave it off.
+> **Security:** because `ListenAddress` is `0.0.0.0`, anyone on your Wi-Fi can reach port 8022. Your root password is the only thing protecting the device - use a strong one, and stop the SSH server when you are done. On untrusted networks (cafés, hotels, offices) leave it off.
 
 Since v2026.9.14 the server performs a pre-flight check and refuses to start when root has no password hash in `/etc/shadow`, instead of exposing an open port ([#107](https://github.com/mithun50/openclaw-termux/issues/107)).
 
 **Troubleshooting:**
 
-- *"Set a root password before starting SSH"* in the notification — do step 3 above.
-- *Connection refused* — the server is not running, or you used port 22 instead of 8022.
-- *IP not reachable* — the app lists every device IP; use the one on the same subnet as your computer.
-- *Permission denied* — the password was not set, or you are connecting as a user other than `root`.
+- *"Set a root password before starting SSH"* in the notification - do step 3 above.
+- *Connection refused* - the server is not running, or you used port 22 instead of 8022.
+- *IP not reachable* - the app lists every device IP; use the one on the same subnet as your computer.
+- *Permission denied* - the password was not set, or you are connecting as a user other than `root`.
 
 ### Local Models with Ollama
 
@@ -465,7 +465,7 @@ The app writes this to `openclaw.json`:
 
 > **Do not add `/v1`.** OpenClaw talks to Ollama's native `/api/chat` endpoint. The `/v1` OpenAI-compatible path breaks tool calling and models emit raw tool-call JSON as text. The app strips a trailing `/v1` for you. See [#117](https://github.com/mithun50/openclaw-termux/issues/117).
 
-Ollama Cloud works too — use `https://ollama.com` as the base URL with a real API key.
+Ollama Cloud works too - use `https://ollama.com` as the base URL with a real API key.
 
 ### Battery Optimization
 
@@ -495,7 +495,7 @@ The Flutter app automatically loads the dashboard with your auth token via the b
 
 ### Files deleted or missing after using the app
 
-Versions before v1.8.4 automatically requested full storage access (`MANAGE_EXTERNAL_STORAGE`) on launch. Combined with symlinks inside the proot rootfs pointing to `/sdcard`, cleanup operations could follow those symlinks and delete real user files. **This has been fixed** — storage permission is no longer auto-requested, symlinks are not followed during deletion, and a path boundary check prevents any deletion outside the app's private directory. If you were affected, see [#67](https://github.com/mithun50/openclaw-termux/issues/67).
+Versions before v1.8.4 automatically requested full storage access (`MANAGE_EXTERNAL_STORAGE`) on launch. Combined with symlinks inside the proot rootfs pointing to `/sdcard`, cleanup operations could follow those symlinks and delete real user files. **This has been fixed** - storage permission is no longer auto-requested, symlinks are not followed during deletion, and a path boundary check prevents any deletion outside the app's private directory. If you were affected, see [#67](https://github.com/mithun50/openclaw-termux/issues/67).
 
 To revoke storage permission: Android Settings > Apps > OpenClaw > Permissions > Files and media > Don't allow.
 

@@ -139,7 +139,7 @@ class NodeService {
   /// Resolve the gateway auth token from available sources:
   /// 1. Manually entered token (for remote gateways)
   /// 2. Dashboard URL fragment (for local gateway)
-  /// 3. openclaw.json config file (source of truth — fallback when URL is stale or missing)
+  /// 3. openclaw.json config file (source of truth - fallback when URL is stale or missing)
   Future<String?> _readGatewayToken() async {
     final prefs = PreferencesService();
     await prefs.init();
@@ -161,7 +161,7 @@ class NodeService {
       }
     }
 
-    // 3. Read directly from openclaw.json — the source of truth (#94).
+    // 3. Read directly from openclaw.json - the source of truth (#94).
     // This catches the case where dashboardUrl was cleared before a gateway
     // restart (GatewayService.start() nulls it out) but the config file still
     // holds the authoritative token, preventing token_missing reconnect loops.
@@ -289,7 +289,7 @@ class NodeService {
     ));
     _log('[NODE] Paired and connected');
 
-    // Send capabilities advertisement — include both 'capabilities' (legacy)
+    // Send capabilities advertisement - include both 'capabilities' (legacy)
     // and 'commands' (matching the connect frame format) so the gateway can
     // discover node commands regardless of which field it checks (#56).
     final capabilities = _capabilityHandlers.keys.toList();
@@ -349,7 +349,7 @@ class NodeService {
         final isLocal = _state.gatewayHost == '127.0.0.1' ||
             _state.gatewayHost == 'localhost';
         if (isLocal) {
-          // Only ever pass a strictly-validated code to the shell — the value
+          // Only ever pass a strictly-validated code to the shell - the value
           // arrives from the gateway over the network.
           if (!RegExp(r'^[A-Za-z0-9_-]{4,32}$').hasMatch(code)) {
             _log('[NODE] Refusing to auto-approve malformed pairing code');

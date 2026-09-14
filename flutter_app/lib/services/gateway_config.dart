@@ -8,7 +8,7 @@ import 'native_bridge.dart';
 ///
 /// The gateway port is NOT fixed at 18789. Upstream precedence is
 /// `--port` > `OPENCLAW_GATEWAY_PORT` > `gateway.port` > 18789, so the app must
-/// read `gateway.port` instead of assuming the default — otherwise health
+/// read `gateway.port` instead of assuming the default - otherwise health
 /// checks, the dashboard URL and the node WebSocket all target the wrong port
 /// when a user changes it (#124).
 class GatewayConfig {
@@ -55,7 +55,7 @@ class GatewayConfig {
       final parsed = parsePort(gateway['port']);
       if (parsed != null) _port = parsed;
     } catch (_) {
-      // Keep the last known port — never throw from a config read.
+      // Keep the last known port - never throw from a config read.
     }
     return _port;
   }

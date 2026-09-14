@@ -74,7 +74,7 @@ class BootstrapService {
       final openclawOk = status['openclawInstalled'] == true;
       final bypassOk = status['bypassInstalled'] == true;
 
-      // Bionic bypass — a cheap native file write.
+      // Bionic bypass - a cheap native file write.
       if (!bypassOk) {
         onProgress(const SetupState(
           step: SetupStep.configuringBypass,
@@ -307,7 +307,7 @@ class BootstrapService {
       ));
       // Blanket recursive chmod on all bin/lib directories.
       // Java tar extraction loses execute bits; dpkg needs tar, xz,
-      // gzip, rm, mv, etc. — easier to fix everything than enumerate.
+      // gzip, rm, mv, etc. - easier to fix everything than enumerate.
       await NativeBridge.runInProot(
         'chmod -R 755 /usr/bin /usr/sbin /bin /sbin '
         '/usr/local/bin /usr/local/sbin 2>/dev/null; '
@@ -321,7 +321,7 @@ class BootstrapService {
       // --- Install base packages via apt-get (like Termux proot-distro) ---
       // Now that our proot matches Termux exactly (env -i, clean host env,
       // proper flags), dpkg works normally. No need for Java-side deb
-      // extraction — let dpkg+tar handle it inside proot like Termux does.
+      // extraction - let dpkg+tar handle it inside proot like Termux does.
       //
       // PERF: the Node.js tarball download is independent of apt, so start it
       // now and await it after apt finishes. Previously the ~30 MB download
@@ -364,7 +364,7 @@ class BootstrapService {
         'ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime && '
         'echo "Etc/UTC" > /etc/timezone',
       );
-      // Keep this set minimal — every package costs download time plus slow
+      // Keep this set minimal - every package costs download time plus slow
       // dpkg work under proot:
       //   ca-certificates: HTTPS for npm/git
       //   git:             openclaw has git deps (@whiskeysockets/libsignal-node)
@@ -381,7 +381,7 @@ class BootstrapService {
       );
 
       // Git config (.gitconfig) is written by installBionicBypass() on the
-      // Java side — directly to $rootfsDir/root/.gitconfig — rewrites
+      // Java side - directly to $rootfsDir/root/.gitconfig - rewrites
       // SSH→HTTPS for npm git deps (no SSH keys in proot).
 
       // --- Node.js via binary tarball (downloaded above, in parallel) ---
@@ -440,7 +440,7 @@ class BootstrapService {
       // A previous interrupted install leaves a partial
       // /usr/local/lib/node_modules/openclaw plus .openclaw-* staging dirs
       // behind. npm then fails with `ENOTEMPTY: rename ... .openclaw-XXXX`
-      // because it cannot stage over them (#133). Remove them first — this is
+      // because it cannot stage over them (#133). Remove them first - this is
       // confined to the proot rootfs, never the Android filesystem.
       await NativeBridge.runInProot(
         'rm -rf /usr/local/lib/node_modules/openclaw '
@@ -499,7 +499,7 @@ class BootstrapService {
       ));
       // npm global install creates symlinks for bin entries, but symlinks
       // can fail silently in proot. Create shell wrappers from Java side
-      // (reads package.json directly from rootfs filesystem — no escaping).
+      // (reads package.json directly from rootfs filesystem - no escaping).
       await NativeBridge.createBinWrappers('openclaw');
 
       _updateSetupNotification('Verifying OpenClaw...', progress: 96);

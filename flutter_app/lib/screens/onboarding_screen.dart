@@ -72,7 +72,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     // Defer PTY start until after the first frame so TerminalView has been
     // laid out and _terminal.viewWidth/viewHeight reflect real screen
     // dimensions instead of the 80×24 default. This is critical for QR
-    // codes — the shell must know the actual column count to avoid wrapping.
+    // codes - the shell must know the actual column count to avoid wrapping.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startOnboarding();
     });

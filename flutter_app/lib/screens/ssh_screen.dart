@@ -4,7 +4,7 @@ import '../app.dart';
 import '../services/ssh_service.dart';
 import 'packages_screen.dart';
 
-/// SSH server management screen — start/stop sshd, set password, show connection info.
+/// SSH server management screen - start/stop sshd, set password, show connection info.
 class SshScreen extends StatefulWidget {
   const SshScreen({super.key});
 

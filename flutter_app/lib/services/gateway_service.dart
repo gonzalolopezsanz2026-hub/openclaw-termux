@@ -80,7 +80,7 @@ class GatewayService {
     await _repairConfigFile();
 
     // Resolve the configured gateway port before any health check or URL
-    // construction — it is not necessarily 18789 (#124).
+    // construction - it is not necessarily 18789 (#124).
     await GatewayConfig.resolvePort();
 
     final alreadyRunning = await NativeBridge.isGatewayRunning();
@@ -116,8 +116,8 @@ class GatewayService {
     _logSubscription = NativeBridge.gatewayLogStream.listen((log) {
       // Append in O(1) amortised. The previous implementation rebuilt the
       // whole list per line (`[..._state.logs, log]`), i.e. O(n) copies per
-      // line and O(n²) over a session, and pushed a new state — rebuilding
-      // the log UI — for every single line. `openclaw gateway --verbose` emits
+      // line and O(n²) over a session, and pushed a new state - rebuilding
+      // the log UI - for every single line. `openclaw gateway --verbose` emits
       // thousands of lines, so both costs were real.
       _logRing.addLast(log);
       while (_logRing.length > _maxLogLines) {
@@ -128,7 +128,7 @@ class GatewayService {
       // for the next flush tick.
       String? dashboardUrl;
       final cleanLog = _cleanForUrl(log);
-      // Match a token URL on any port — the gateway may be bound to a custom
+      // Match a token URL on any port - the gateway may be bound to a custom
       // port via gateway.port / --port (#124).
       final urlMatch = GatewayConfig.anyPortTokenUrlRegex.firstMatch(cleanLog);
       if (urlMatch != null) {
@@ -186,9 +186,9 @@ class GatewayService {
   /// commands this app declares.
   ///
   /// The canonical upstream keys are `gateway.nodes.commands.allow` and
-  /// `gateway.nodes.commands.deny` (see OpenClaw "Configuration — gateway").
+  /// `gateway.nodes.commands.deny` (see OpenClaw "Configuration - gateway").
   /// Earlier versions of this app wrote `gateway.nodes.allowCommands` /
-  /// `denyCommands`, which OpenClaw ignores — so classified commands such as
+  /// `denyCommands`, which OpenClaw ignores - so classified commands such as
   /// `camera.snap` and `screen.record` were never actually allowed (#81, #95).
   /// The legacy keys are removed here so they cannot fail config validation.
   Future<void> _writeNodeAllowConfig() async {
@@ -326,7 +326,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
     auth.putIfAbsent('mode', () => 'token');
   }
 
-  /// 32 random bytes as lower-case hex — matches the `[0-9a-f]+` shape the
+  /// 32 random bytes as lower-case hex - matches the `[0-9a-f]+` shape the
   /// token URL regex expects.
   static String generateGatewayToken() {
     final rng = Random.secure();
@@ -334,7 +334,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
     return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
-  /// Repair openclaw.json on disk — fixes corrupted model entries and ensures
+  /// Repair openclaw.json on disk - fixes corrupted model entries and ensures
   /// gateway.mode=local is set. Called on init() before any gateway start (#88).
   Future<void> _repairConfigFile() async {
     try {
@@ -348,7 +348,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
       try {
         config = Map<String, dynamic>.from(jsonDecode(content) as Map);
       } catch (_) {
-        return; // Unparseable — _writeNodeAllowConfig will recreate it
+        return; // Unparseable - _writeNodeAllowConfig will recreate it
       }
 
       bool modified = false;
@@ -410,7 +410,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
   }
 
   /// Read the actual gateway auth token from openclaw.json config file (#74, #82).
-  /// This is the source of truth — more reliable than regex-scraping stdout.
+  /// This is the source of truth - more reliable than regex-scraping stdout.
   Future<String?> _readTokenFromConfig() async {
     try {
       final raw = await NativeBridge.readRootfsFile('root/.openclaw/openclaw.json');
@@ -446,7 +446,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
     ));
 
     try {
-      // Ensure directories exist — Android may have cleared them (#40).
+      // Ensure directories exist - Android may have cleared them (#40).
       // Non-fatal: the GatewayService foreground service also creates them.
       try { await NativeBridge.setupDirs(); } catch (_) {}
       try { await NativeBridge.writeResolv(); } catch (_) {}
@@ -467,7 +467,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
         }
       } catch (_) {}
       await _writeNodeAllowConfig();
-      // Re-read gateway.port — the user may have changed it since init() (#124).
+      // Re-read gateway.port - the user may have changed it since init() (#124).
       await GatewayConfig.resolvePort();
       _startingAt = DateTime.now();
       await NativeBridge.startGateway();
@@ -515,7 +515,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
 
   void _startHealthCheck() {
     _cancelAllTimers();
-    // Delay the first health check by 30s — Node.js inside proot needs time to start.
+    // Delay the first health check by 30s - Node.js inside proot needs time to start.
     // Use a Timer (not Future.delayed) so it can be cancelled on stop().
     _initialDelayTimer = Timer(const Duration(seconds: 30), () {
       _initialDelayTimer = null;
@@ -535,7 +535,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
           .timeout(const Duration(seconds: 3));
 
       if (response.statusCode < 500 && _state.status != GatewayStatus.running) {
-        // Read the actual token from openclaw.json — source of truth (#74, #82).
+        // Read the actual token from openclaw.json - source of truth (#74, #82).
         // This ensures the displayed token always matches the gateway's config,
         // even if the stdout regex didn't capture it.
         String? configUrl = _state.dashboardUrl;

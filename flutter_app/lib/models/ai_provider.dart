@@ -47,7 +47,7 @@ class AiProvider {
   static const anthropic = AiProvider(
     id: 'anthropic',
     name: 'Anthropic',
-    description: 'Claude models — advanced reasoning and coding',
+    description: 'Claude models - advanced reasoning and coding',
     icon: Icons.psychology,
     color: Color(0xFFD97706),
     baseUrl: 'https://api.anthropic.com/v1',
@@ -171,7 +171,7 @@ class AiProvider {
   /// Local/self-hosted Ollama.
   ///
   /// OpenClaw talks to Ollama's **native** API (`/api/chat`), so the base URL
-  /// must NOT include `/v1` — the OpenAI-compatible path breaks tool calling.
+  /// must NOT include `/v1` - the OpenAI-compatible path breaks tool calling.
   /// `api: "ollama"` pins native behaviour explicitly. A placeholder key is
   /// used because OpenClaw only needs a non-empty credential for availability
   /// checks on a local host.

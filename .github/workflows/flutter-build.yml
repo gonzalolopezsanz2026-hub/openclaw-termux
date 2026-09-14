@@ -40,7 +40,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          # Must stay >= 3.27 — the themes use CardThemeData/DialogThemeData.
+          # Must stay >= 3.27 - the themes use CardThemeData/DialogThemeData.
           flutter-version: '3.44.8'
           channel: stable
           cache: true
@@ -109,7 +109,7 @@ jobs:
             done
           done
           if [ "$FAIL" -ne 0 ]; then
-            echo "PRoot binaries are incomplete — the APK would fail setup on device."
+            echo "PRoot binaries are incomplete - the APK would fail setup on device."
             exit 1
           fi
 
@@ -312,7 +312,7 @@ jobs:
           body: |
             ## OpenClaw Android v${{ steps.version.outputs.version }}
 
-            Standalone Android app — no Termux required.
+            Standalone Android app - no Termux required.
 
             ### Downloads
             | File | Description |

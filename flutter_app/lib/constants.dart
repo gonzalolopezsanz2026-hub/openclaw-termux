@@ -25,7 +25,7 @@ class AppConstants {
 
   /// Port the gateway binds to when `gateway.port` is absent from
   /// openclaw.json. The effective port is resolved at runtime by
-  /// [GatewayConfig] — do not assume this value (#124).
+  /// [GatewayConfig] - do not assume this value (#124).
   static const int defaultGatewayPort = 18789;
 
   /// Deprecated alias kept for call sites that only need the default.
@@ -38,7 +38,7 @@ class AppConstants {
   static const String rootfsArmhf = '${ubuntuRootfsUrl}armhf.tar.gz';
   static const String rootfsAmd64 = '${ubuntuRootfsUrl}amd64.tar.gz';
 
-  // Node.js binary tarball — downloaded directly by Flutter, extracted by Java.
+  // Node.js binary tarball - downloaded directly by Flutter, extracted by Java.
   // Bypasses curl/gpg/NodeSource which fail inside proot.
   // Keep this >= 22.19.0: openclaw depends on undici, which declares
   // `engines.node >= 22.19.0`. Older runtimes emit EBADENGINE and can abort

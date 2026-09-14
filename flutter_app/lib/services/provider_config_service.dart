@@ -127,7 +127,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
     }
   }
 
-  /// Ollama's native API must not carry a `/v1` suffix — that path selects
+  /// Ollama's native API must not carry a `/v1` suffix - that path selects
   /// OpenAI-compatible mode, where tool calling is unreliable.
   static String _normalizeBaseUrl(AiProvider provider, String url) {
     var normalized = url;
@@ -158,7 +158,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
       // Start fresh
     }
 
-    // Merge provider entry — models must be objects with `id`, not bare strings (#83, #88).
+    // Merge provider entry - models must be objects with `id`, not bare strings (#83, #88).
     config['models'] ??= <String, dynamic>{};
     (config['models'] as Map<String, dynamic>)['providers'] ??= <String, dynamic>{};
     ((config['models'] as Map<String, dynamic>)['providers'] as Map<String, dynamic>)[provider.id] = {

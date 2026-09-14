@@ -119,8 +119,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ListTile(
                   title: const Text('Setup Storage'),
                   subtitle: Text(_storageGranted
-                      ? 'Granted — proot can access /sdcard. Revoke if not needed.'
-                      : 'Not granted (recommended) — tap to grant only if needed'),
+                      ? 'Granted - proot can access /sdcard. Revoke if not needed.'
+                      : 'Not granted (recommended) - tap to grant only if needed'),
                   leading: const Icon(Icons.sd_storage),
                   trailing: _storageGranted
                       ? const Icon(Icons.warning_amber, color: AppColors.statusAmber)

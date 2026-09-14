@@ -50,7 +50,7 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen> {
     if (widget.provider.defaultModels.contains(existing)) {
       _selectedModel = existing;
     } else {
-      // Existing model is not in the predefined list — treat as custom
+      // Existing model is not in the predefined list - treat as custom
       _selectedModel = _customModelSentinel;
       _isCustomModel = true;
       _customModelController.text = existing;
