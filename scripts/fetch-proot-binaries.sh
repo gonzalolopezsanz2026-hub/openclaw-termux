@@ -78,6 +78,16 @@ fetch_for_abi() {
         return 1
     fi
 
+    # Fetch libandroid-shmem package.
+    # proot declares `Depends: libandroid-shmem, libtalloc`. Without this the
+    # dynamic linker aborts at startup with
+    #   CANNOT LINK EXECUTABLE: library "libandroid-shmem.so" not found
+    # which surfaces in the app as "Setup failed: PROOT_ERROR".
+    local shmem_dir="$extract_base/shmem"
+    if ! fetch_termux_pkg "libandroid-shmem" "$deb_arch" "$shmem_dir"; then
+        return 1
+    fi
+
     # Copy proot binary
     local proot_bin
     proot_bin=$(find "$proot_dir" -name "proot" -path "*/bin/*" -type f | head -1)
@@ -117,6 +127,17 @@ fetch_for_abi() {
         chmod 755 "$out_dir/libtalloc.so"
     else
         echo "  [$jni_abi] WARN: libtalloc not found"
+    fi
+
+    # Copy libandroid-shmem. Its SONAME already matches the lib*.so pattern
+    # Android extracts, so no runtime rename is needed (unlike libtalloc.so.2).
+    local shmem_lib
+    shmem_lib=$(find "$shmem_dir" -name "libandroid-shmem.so*" -type f -o -name "libandroid-shmem.so" -type l | head -1)
+    if [ -n "$shmem_lib" ]; then
+        cp -L "$shmem_lib" "$out_dir/libandroid-shmem.so"
+        chmod 755 "$out_dir/libandroid-shmem.so"
+    else
+        echo "  [$jni_abi] WARN: libandroid-shmem not found"
     fi
 
     echo "  [$jni_abi] OK — $(ls "$out_dir"/ | tr '\n' ' ')"

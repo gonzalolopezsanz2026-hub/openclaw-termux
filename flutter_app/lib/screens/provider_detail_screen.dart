@@ -25,6 +25,7 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen> {
 
   late final TextEditingController _apiKeyController;
   late final TextEditingController _customModelController;
+  late final TextEditingController _baseUrlController;
   late String _selectedModel;
   bool _isCustomModel = false;
   bool _obscureKey = true;
@@ -42,6 +43,8 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen> {
     super.initState();
     _apiKeyController = TextEditingController(text: widget.existingApiKey ?? '');
     _customModelController = TextEditingController();
+    _baseUrlController =
+        TextEditingController(text: widget.provider.baseUrl);
 
     final existing = widget.existingModel ?? widget.provider.defaultModels.first;
     if (widget.provider.defaultModels.contains(existing)) {
@@ -58,12 +61,15 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen> {
   void dispose() {
     _apiKeyController.dispose();
     _customModelController.dispose();
+    _baseUrlController.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final apiKey = _apiKeyController.text.trim();
-    if (apiKey.isEmpty) {
+    // Local runtimes (Ollama) authenticate with a placeholder, so an empty
+    // field is valid there (#117).
+    if (apiKey.isEmpty && widget.provider.requiresApiKey) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('API key cannot be empty')),
       );
@@ -83,6 +89,9 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen> {
         provider: widget.provider,
         apiKey: apiKey,
         model: model,
+        baseUrlOverride: widget.provider.editableBaseUrl
+            ? _baseUrlController.text.trim()
+            : null,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -197,7 +206,7 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen> {
 
           // API Key
           Text(
-            'API Key',
+            widget.provider.requiresApiKey ? 'API Key' : 'API Key (optional)',
             style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
@@ -212,6 +221,31 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen> {
               ),
             ),
           ),
+          if (widget.provider.editableBaseUrl) ...[
+            const SizedBox(height: 24),
+            Text(
+              'Base URL',
+              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _baseUrlController,
+              keyboardType: TextInputType.url,
+              decoration: InputDecoration(
+                hintText: widget.provider.baseUrl,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.provider.api == 'ollama'
+                  ? 'Use the native Ollama URL without /v1 (e.g. http://192.168.1.10:11434). '
+                      'The /v1 OpenAI-compatible path breaks tool calling.'
+                  : 'Override the provider endpoint.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
 
           // Model selection

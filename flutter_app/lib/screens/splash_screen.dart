@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants.dart';
@@ -88,17 +87,20 @@ class _SplashScreenState extends State<SplashScreen>
             }
             final snapshotPath = '$sdcard/Download/openclaw-snapshot-$oldVersion.json';
             final openclawJson = await NativeBridge.readRootfsFile('root/.openclaw/openclaw.json');
+            // Credentials are deliberately excluded: this file lands in shared
+            // storage where any app with storage access can read it. Tokens are
+            // device-bound and are re-derived on the next pairing.
             final snapshot = {
               'version': oldVersion,
               'timestamp': DateTime.now().toIso8601String(),
               'openclawConfig': openclawJson,
-              'dashboardUrl': prefs.dashboardUrl,
               'autoStart': prefs.autoStartGateway,
               'nodeEnabled': prefs.nodeEnabled,
-              'nodeDeviceToken': prefs.nodeDeviceToken,
               'nodeGatewayHost': prefs.nodeGatewayHost,
               'nodeGatewayPort': prefs.nodeGatewayPort,
-              'nodeGatewayToken': prefs.nodeGatewayToken,
+              'note':
+                  'Auth tokens and the dashboard URL are omitted on purpose. '
+                  'Re-pair the node after restoring.',
             };
             await File(snapshotPath).writeAsString(
               const JsonEncoder.withIndent('  ').convert(snapshot),
@@ -115,55 +117,31 @@ class _SplashScreenState extends State<SplashScreen>
         setupComplete = false;
       }
 
-      // Auto-repair: if the rootfs and bash exist but other components are
-      // missing, try to repair them instead of forcing full re-setup (#70, #73, #97).
+      // Detect-only. Heavy repair work (Node.js download, npm install) must
+      // NOT run here: the splash has no progress UI, no notification and no
+      // foreground service, so a multi-minute install looks like a frozen app
+      // and Android can kill it mid-way (#125). Instead route to the setup
+      // wizard in repair mode, which reports progress and holds a wake lock.
+      var repairMode = false;
       if (!setupComplete) {
         try {
           final status = await NativeBridge.getBootstrapStatus();
           final rootfsOk = status['rootfsExists'] == true;
           final bashOk = status['binBashExists'] == true;
-          final nodeOk = status['nodeInstalled'] == true;
-          final openclawOk = status['openclawInstalled'] == true;
           final bypassOk = status['bypassInstalled'] == true;
 
-          // Core rootfs must exist — can't repair without it
+          // Core rootfs must exist — can't repair without it.
           if (rootfsOk && bashOk) {
-            // Regenerate bionic bypass if missing
+            // The bypass is a cheap native file write, so it is safe to do
+            // here and may be all that is missing.
             if (!bypassOk) {
               setState(() => _status = 'Repairing bionic bypass...');
               await NativeBridge.installBionicBypass();
             }
-
-            // Reinstall node if binary is missing (#97)
-            if (!nodeOk) {
-              setState(() => _status = 'Reinstalling Node.js...');
-              try {
-                final arch = await NativeBridge.getArch();
-                final nodeTarUrl = AppConstants.getNodeTarballUrl(arch);
-                final filesDir = await NativeBridge.getFilesDir();
-                final nodeTarPath = '$filesDir/tmp/nodejs.tar.xz';
-                final dio = Dio();
-                await dio.download(nodeTarUrl, nodeTarPath);
-                await NativeBridge.extractNodeTarball(nodeTarPath);
-              } catch (_) {}
-            }
-
-            // Reinstall openclaw if package.json is missing (#97)
-            if (!openclawOk && nodeOk) {
-              setState(() => _status = 'Reinstalling OpenClaw...');
-              try {
-                const wrapper = '/root/.openclaw/node-wrapper.js';
-                const nodeRun = 'node $wrapper';
-                const npmCli = '/usr/local/lib/node_modules/npm/bin/npm-cli.js';
-                await NativeBridge.runInProot(
-                  '$nodeRun $npmCli install -g openclaw',
-                  timeout: 1800,
-                );
-                await NativeBridge.createBinWrappers('openclaw');
-              } catch (_) {}
-            }
-
             setupComplete = await NativeBridge.isBootstrapComplete();
+            // Anything still missing (Node.js / OpenClaw) is a long download
+            // or install — hand it to the wizard.
+            repairMode = !setupComplete;
           }
         } catch (_) {}
       }
@@ -177,7 +155,9 @@ class _SplashScreenState extends State<SplashScreen>
         );
       } else {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const SetupWizardScreen()),
+          MaterialPageRoute(
+            builder: (_) => SetupWizardScreen(repairMode: repairMode),
+          ),
         );
       }
     } catch (e) {
@@ -220,7 +200,7 @@ class _SplashScreenState extends State<SplashScreen>
               ),
               const SizedBox(height: 4),
               Text(
-                'by ${AppConstants.authorName} | ${AppConstants.orgName}',
+                'by ${AppConstants.authorName}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),

@@ -1,6 +1,6 @@
 class AppConstants {
   static const String appName = 'OpenClaw';
-  static const String version = '1.8.7';
+  static const String version = '2026.9.14';
   static const String packageName = 'com.nxg.openclawproot';
 
   /// Matches ANSI escape sequences (e.g. color codes in terminal output).
@@ -14,16 +14,23 @@ class AppConstants {
   static const String githubApiLatestRelease =
       'https://api.github.com/repos/mithun50/openclaw-termux/releases/latest';
 
-  // NextGenX
-  static const String orgName = 'NextGenX';
-  static const String orgEmail = 'nxgextra@gmail.com';
-  static const String instagramUrl = 'https://www.instagram.com/nexgenxplorer_nxg';
-  static const String youtubeUrl = 'https://youtube.com/@nexgenxplorer?si=UG-wBC8UIyeT4bbw';
-  static const String playStoreUrl = 'https://play.google.com/store/apps/dev?id=8262374975871504599';
+  // Project links
+  static const String issuesUrl =
+      'https://github.com/mithun50/openclaw-termux/issues';
+  static const String releasesUrl =
+      'https://github.com/mithun50/openclaw-termux/releases';
+  static const String upstreamUrl = 'https://github.com/openclaw/openclaw';
 
   static const String gatewayHost = '127.0.0.1';
-  static const int gatewayPort = 18789;
-  static const String gatewayUrl = 'http://$gatewayHost:$gatewayPort';
+
+  /// Port the gateway binds to when `gateway.port` is absent from
+  /// openclaw.json. The effective port is resolved at runtime by
+  /// [GatewayConfig] — do not assume this value (#124).
+  static const int defaultGatewayPort = 18789;
+
+  /// Deprecated alias kept for call sites that only need the default.
+  static const int gatewayPort = defaultGatewayPort;
+  static const String gatewayUrl = 'http://$gatewayHost:$defaultGatewayPort';
 
   static const String ubuntuRootfsUrl =
       'https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-';
@@ -33,7 +40,10 @@ class AppConstants {
 
   // Node.js binary tarball — downloaded directly by Flutter, extracted by Java.
   // Bypasses curl/gpg/NodeSource which fail inside proot.
-  static const String nodeVersion = '22.14.0';
+  // Keep this >= 22.19.0: openclaw depends on undici, which declares
+  // `engines.node >= 22.19.0`. Older runtimes emit EBADENGINE and can abort
+  // the global install (#133).
+  static const String nodeVersion = '22.23.2';
   static const String nodeBaseUrl =
       'https://nodejs.org/dist/v$nodeVersion/node-v$nodeVersion-linux-';
 

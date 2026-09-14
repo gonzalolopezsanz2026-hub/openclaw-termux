@@ -136,10 +136,20 @@ class SshForegroundService : Service() {
                 // PermitRootLogin yes is needed since proot fakes root.
                 // ListenAddress 0.0.0.0 ensures sshd binds to all IPv4
                 // interfaces and survives VPN network changes (#61).
+                //
+                // SECURITY: because sshd is reachable from the whole local
+                // network, refuse to start unless root actually has a password
+                // hash in /etc/shadow (a hash always begins with '$'), and
+                // pin PermitEmptyPasswords no. Otherwise a single tap could
+                // expose a passwordless root shell to the LAN.
                 val cmd = "mkdir -p /run/sshd /etc/ssh && " +
+                    "if ! grep -qE '^root:\\\$' /etc/shadow; then " +
+                    "echo 'OPENCLAW_NO_ROOT_PASSWORD'; exit 78; fi; " +
                     "test -f /etc/ssh/ssh_host_rsa_key || ssh-keygen -A && " +
                     "sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null; " +
                     "grep -q '^PermitRootLogin' /etc/ssh/sshd_config || echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config; " +
+                    "sed -i 's/^#\\?PermitEmptyPasswords.*/PermitEmptyPasswords no/' /etc/ssh/sshd_config 2>/dev/null; " +
+                    "grep -q '^PermitEmptyPasswords' /etc/ssh/sshd_config || echo 'PermitEmptyPasswords no' >> /etc/ssh/sshd_config; " +
                     "sed -i 's/^#\\?ListenAddress.*/ListenAddress 0.0.0.0/' /etc/ssh/sshd_config 2>/dev/null; " +
                     "grep -q '^ListenAddress' /etc/ssh/sshd_config || echo 'ListenAddress 0.0.0.0' >> /etc/ssh/sshd_config; " +
                     "/usr/sbin/sshd -D -e -p $port"
@@ -169,6 +179,15 @@ class SshForegroundService : Service() {
                     val exitCode = sshdProcess!!.waitFor()
 
                     if (!isRunning) break // Intentional stop
+
+                    // Exit 78 = our pre-flight guard: root has no password set.
+                    // Retrying cannot help, so stop and tell the user.
+                    if (exitCode == 78) {
+                        isRunning = false
+                        updateNotification("Set a root password before starting SSH")
+                        stopSelf()
+                        break
+                    }
 
                     restartCount++
                     if (restartCount <= maxRestarts) {

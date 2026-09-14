@@ -1,5 +1,37 @@
 # Changelog
 
+## v2026.9.14 — Custom Ports, Node Command Policy, Ollama & Toolchain Refresh
+
+### Bug Fixes
+
+- **Custom Gateway Port Ignored (#124)** — The app hard-coded `18789` in the health check, dashboard URL, token-URL regex, node WebSocket, port probe and notification, so setting `gateway.port` to anything else left the app talking to the wrong address (and eventually declaring a healthy gateway dead). A new `GatewayConfig` service resolves `gateway.port` from `openclaw.json` on every init and start; `GatewayService.kt` reads it natively, passes `--port` explicitly for non-default ports, and reports it in logs and the notification. Token URLs are now matched on any port. The Termux CLI got the same fix via `getGatewayPort()`
+- **Node Commands Were Never Authorised (#81, #95)** — The app wrote `gateway.nodes.allowCommands` / `gateway.nodes.denyCommands`, which OpenClaw does not read. The canonical keys are `gateway.nodes.commands.allow` / `.deny`. Classified commands such as `camera.snap` and `screen.record` were therefore silently unauthorised. Now written correctly, the legacy keys are deleted, and `gateway.nodes.pairing.autoApproveLocal` is set so the local node pairs without manual approval
+- **OpenClaw Install Failure (#133)** — `npm install -g openclaw` aborted with `ENOTEMPTY: rename '/usr/local/lib/node_modules/openclaw' -> '.openclaw-XXXX'` when a previous attempt was interrupted. Stale `openclaw` and `.openclaw-*` directories plus the npm cache temp dir are now removed before installing, and the install retries once after a hard cache clean. Same cleanup added to the Termux CLI installer
+- **EBADENGINE Warning (#133)** — Node.js bumped 22.14.0 → **22.23.2**, satisfying `undici`'s `engines.node >= 22.19.0`
+- **npm Package Lagged the Repo (#99)** — `lib/index.js` hard-coded `VERSION = '1.7.3'` while the package was 1.8.7. The version is now read from `package.json`, a new `npm-publish.yml` workflow publishes on version change, and tests assert that `package.json`, `pubspec.yaml` and `constants.dart` agree
+
+### New Features
+
+- **Ollama Provider (#117)** — Run local and self-hosted open models with no API key. Configured per upstream requirements: native API base URL (**no `/v1`** — that path breaks tool calling), explicit `api: "ollama"`, a `300s` timeout for cold local models, and provider-qualified model refs (`ollama/qwen3:8b`). The base URL is editable in the app for LAN or Ollama Cloud hosts, and a trailing `/v1` is stripped automatically
+- **Editable Provider Base URL** — Providers that support it expose a Base URL field; the API key field is optional for local runtimes
+
+### Security
+
+- **Credentials Excluded From Backup** — `FlutterSharedPreferences.xml` holds the node Ed25519 private key, the paired device token and the gateway auth token, and was included in Android cloud backup and device transfer. Both are now excluded
+- **SSH Refuses to Expose a Passwordless Root (#107)** — sshd binds `0.0.0.0`, so it is reachable from the whole LAN. It now performs a pre-flight check for a real root password hash in `/etc/shadow` and exits instead of starting, and `PermitEmptyPasswords no` is pinned explicitly
+- **Pairing Code Validated Before Shell Use** — the gateway-supplied pairing code is checked against `^[A-Za-z0-9_-]{4,32}$` before being interpolated into the auto-approve command
+- **Settings Snapshot No Longer Leaks Tokens** — the exported snapshot is written to shared storage; device and gateway tokens are now omitted
+
+### Maintenance
+
+- **Toolchain Refresh** — Gradle 8.3 → **8.14.3**, AGP 8.1.0 → **8.11.1**, Kotlin 1.9.0 → **2.2.20**, `compileSdk` 35 → **36**. The project could not build on any current Flutter before this (Gradle 8.3 is below Flutter's 8.7 minimum). CI Flutter pinned 3.24.0 → **3.44.8**. `ndkVersion` added to the plugin subproject defaults so the `jni` plugin configures
+- **Tests** — First Dart test suite (`flutter_app/test/`, 17 tests) covering port resolution, token-URL parsing and the provider contract; npm suite expanded to 16 tests. CI now runs `flutter test` and no longer swallows `flutter analyze` failures
+- **Analyzer Clean** — Migrated `CardTheme`/`DialogTheme` to `CardThemeData`/`DialogThemeData`, clearing 4 pre-existing errors
+- **Branding** — All NextGenX references removed from the app, README, privacy policy and release assets
+- **Docs** — README capability table corrected to **9 capabilities / 21 commands** (`battery.status` and `serial.*` were undocumented), structure tree updated, new Gateway Port / SSH / Ollama sections. Privacy policy gained a Node Device Capabilities section disclosing that camera, location, screen and sensor data can reach your configured AI provider
+
+---
+
 ## v1.8.6 — Config Repair, Gateway Mode & Node.js Update
 
 ### Bug Fixes

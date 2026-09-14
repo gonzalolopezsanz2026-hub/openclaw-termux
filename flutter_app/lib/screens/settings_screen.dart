@@ -291,44 +291,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   leading: Icon(Icons.description),
                 ),
                 const Divider(),
-                _sectionHeader(theme, AppConstants.orgName.toUpperCase()),
+                _sectionHeader(theme, 'PROJECT'),
                 ListTile(
-                  title: const Text('Instagram'),
-                  subtitle: const Text('@nexgenxplorer_nxg'),
-                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Report an Issue'),
+                  subtitle: const Text('Open a GitHub issue'),
+                  leading: const Icon(Icons.bug_report),
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => launchUrl(
-                    Uri.parse(AppConstants.instagramUrl),
+                    Uri.parse(AppConstants.issuesUrl),
                     mode: LaunchMode.externalApplication,
                   ),
                 ),
                 ListTile(
-                  title: const Text('YouTube'),
-                  subtitle: const Text('@nexgenxplorer'),
-                  leading: const Icon(Icons.play_circle_fill),
+                  title: const Text('Releases'),
+                  subtitle: const Text('Download the latest APK'),
+                  leading: const Icon(Icons.download),
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => launchUrl(
-                    Uri.parse(AppConstants.youtubeUrl),
+                    Uri.parse(AppConstants.releasesUrl),
                     mode: LaunchMode.externalApplication,
                   ),
                 ),
                 ListTile(
-                  title: const Text('Play Store'),
-                  subtitle: const Text('NextGenX Apps'),
-                  leading: const Icon(Icons.shop),
+                  title: const Text('Upstream OpenClaw'),
+                  subtitle: const Text('openclaw/openclaw'),
+                  leading: const Icon(Icons.link),
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => launchUrl(
-                    Uri.parse(AppConstants.playStoreUrl),
+                    Uri.parse(AppConstants.upstreamUrl),
                     mode: LaunchMode.externalApplication,
-                  ),
-                ),
-                ListTile(
-                  title: const Text('Email'),
-                  subtitle: const Text(AppConstants.orgEmail),
-                  leading: const Icon(Icons.email_outlined),
-                  trailing: const Icon(Icons.open_in_new, size: 18),
-                  onTap: () => launchUrl(
-                    Uri.parse('mailto:${AppConstants.orgEmail}'),
                   ),
                 ),
               ],
@@ -354,17 +345,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _exportSnapshot() async {
     try {
       final openclawJson = await NativeBridge.readRootfsFile('root/.openclaw/openclaw.json');
+      // Credentials are deliberately excluded: the snapshot is written to
+      // shared storage (Downloads) where any app with storage access can read
+      // it. Tokens are device-bound and re-derived on the next pairing.
       final snapshot = {
         'version': AppConstants.version,
         'timestamp': DateTime.now().toIso8601String(),
         'openclawConfig': openclawJson,
-        'dashboardUrl': _prefs.dashboardUrl,
         'autoStart': _prefs.autoStartGateway,
         'nodeEnabled': _prefs.nodeEnabled,
-        'nodeDeviceToken': _prefs.nodeDeviceToken,
         'nodeGatewayHost': _prefs.nodeGatewayHost,
         'nodeGatewayPort': _prefs.nodeGatewayPort,
-        'nodeGatewayToken': _prefs.nodeGatewayToken,
+        'note':
+            'Auth tokens and the dashboard URL are omitted on purpose. '
+            'Re-pair the node after restoring.',
       };
 
       final path = await _getSnapshotPath();

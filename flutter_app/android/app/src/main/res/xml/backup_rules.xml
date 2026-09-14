@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- fullBackupContent rules for Android ≤11 -->
+<!-- fullBackupContent rules for Android <=11 -->
+<!--
+  Excludes the Flutter SharedPreferences file, which holds the node Ed25519
+  private key, the paired device token and the gateway auth token. These are
+  device-bound credentials and must not be backed up off-device.
+-->
 <full-backup-content>
     <include domain="sharedpref" path="." />
+    <exclude domain="sharedpref" path="FlutterSharedPreferences.xml" />
 </full-backup-content>

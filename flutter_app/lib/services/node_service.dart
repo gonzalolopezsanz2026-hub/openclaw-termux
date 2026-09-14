@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../constants.dart';
 import '../models/node_frame.dart';
 import '../models/node_state.dart';
+import 'gateway_config.dart';
 import 'native_bridge.dart';
 import 'node_identity_service.dart';
 import 'node_ws_service.dart';
@@ -64,7 +65,10 @@ class NodeService {
     await prefs.init();
 
     final targetHost = host ?? prefs.nodeGatewayHost ?? AppConstants.gatewayHost;
-    final targetPort = port ?? prefs.nodeGatewayPort ?? AppConstants.gatewayPort;
+    // Fall back to the port the gateway is actually configured for (#124),
+    // not the 18789 default.
+    final targetPort =
+        port ?? prefs.nodeGatewayPort ?? await GatewayConfig.resolvePort();
 
     _updateState(_state.copyWith(
       status: NodeStatus.connecting,
@@ -345,6 +349,12 @@ class NodeService {
         final isLocal = _state.gatewayHost == '127.0.0.1' ||
             _state.gatewayHost == 'localhost';
         if (isLocal) {
+          // Only ever pass a strictly-validated code to the shell — the value
+          // arrives from the gateway over the network.
+          if (!RegExp(r'^[A-Za-z0-9_-]{4,32}$').hasMatch(code)) {
+            _log('[NODE] Refusing to auto-approve malformed pairing code');
+            return;
+          }
           _log('[NODE] Local gateway detected, auto-approving...');
           try {
             await NativeBridge.runInProot('openclaw nodes approve $code');

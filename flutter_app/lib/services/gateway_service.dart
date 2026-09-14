@@ -1,21 +1,30 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../constants.dart';
 import '../models/gateway_state.dart';
+import 'gateway_config.dart';
 import 'native_bridge.dart';
 import 'preferences_service.dart';
 
 class GatewayService {
+  static const int _maxLogLines = 500;
+  static const Duration _logFlushInterval = Duration(milliseconds: 100);
+
   Timer? _healthTimer;
   Timer? _initialDelayTimer;
+  Timer? _logFlushTimer;
   StreamSubscription? _logSubscription;
+  /// Bounded ring buffer of log lines. A deque gives O(1) append and O(1)
+  /// eviction; the previous list-copy approach was O(n) per line.
+  final ListQueue<String> _logRing = ListQueue<String>(_maxLogLines);
   final _stateController = StreamController<GatewayState>.broadcast();
   GatewayState _state = const GatewayState();
   DateTime? _startingAt;
   bool _startInProgress = false;
-  static final _tokenUrlRegex = RegExp(r'https?://(?:localhost|127\.0\.0\.1):18789/#token=[0-9a-f]+');
   static final _boxDrawing = RegExp(r'[│┤├┬┴┼╮╯╰╭─╌╴╶┌┐└┘◇◆]+');
 
   /// Strip ANSI, box-drawing chars, and whitespace to reconstruct URLs
@@ -70,6 +79,10 @@ class GatewayService {
     // This fixes the "Invalid input: expected object, received string" crash loop.
     await _repairConfigFile();
 
+    // Resolve the configured gateway port before any health check or URL
+    // construction — it is not necessarily 18789 (#124).
+    await GatewayConfig.resolvePort();
+
     final alreadyRunning = await NativeBridge.isGatewayRunning();
     if (alreadyRunning) {
       // Write allowCommands config so the next gateway restart picks it up,
@@ -78,21 +91,21 @@ class GatewayService {
       // Prefer token from config file over stale SharedPreferences value (#74, #82).
       final configToken = await _readTokenFromConfig();
       final effectiveUrl = configToken != null
-          ? 'http://localhost:18789/#token=$configToken'
+          ? GatewayConfig.dashboardUrl(configToken)
           : savedUrl;
       if (configToken != null) prefs.dashboardUrl = effectiveUrl;
       _startingAt = DateTime.now();
       _updateState(_state.copyWith(
         status: GatewayStatus.starting,
         dashboardUrl: effectiveUrl,
-        logs: [..._state.logs, _ts('[INFO] Gateway process detected, reconnecting...')],
+        logs: _appendAndSnapshot('[INFO] Gateway process detected, reconnecting...'),
       ));
 
       _subscribeLogs();
       _startHealthCheck();
     } else if (prefs.autoStartGateway) {
       _updateState(_state.copyWith(
-        logs: [..._state.logs, _ts('[INFO] Auto-starting gateway...')],
+        logs: _appendAndSnapshot('[INFO] Auto-starting gateway...'),
       ));
       await start();
     }
@@ -101,26 +114,83 @@ class GatewayService {
   void _subscribeLogs() {
     _logSubscription?.cancel();
     _logSubscription = NativeBridge.gatewayLogStream.listen((log) {
-      final logs = [..._state.logs, log];
-      if (logs.length > 500) {
-        logs.removeRange(0, logs.length - 500);
+      // Append in O(1) amortised. The previous implementation rebuilt the
+      // whole list per line (`[..._state.logs, log]`), i.e. O(n) copies per
+      // line and O(n²) over a session, and pushed a new state — rebuilding
+      // the log UI — for every single line. `openclaw gateway --verbose` emits
+      // thousands of lines, so both costs were real.
+      _logRing.addLast(log);
+      while (_logRing.length > _maxLogLines) {
+        _logRing.removeFirst();
       }
+
+      // Token detection stays synchronous: the dashboard URL must not wait
+      // for the next flush tick.
       String? dashboardUrl;
       final cleanLog = _cleanForUrl(log);
-      final urlMatch = _tokenUrlRegex.firstMatch(cleanLog);
+      // Match a token URL on any port — the gateway may be bound to a custom
+      // port via gateway.port / --port (#124).
+      final urlMatch = GatewayConfig.anyPortTokenUrlRegex.firstMatch(cleanLog);
       if (urlMatch != null) {
         dashboardUrl = urlMatch.group(0);
+        // Keep the resolved port in sync with what the gateway actually printed.
+        final loggedPort = GatewayConfig.parsePort(urlMatch.group(1));
+        if (loggedPort != null) GatewayConfig.setCachedPort(loggedPort);
         final prefs = PreferencesService();
         prefs.init().then((_) => prefs.dashboardUrl = dashboardUrl);
         NativeBridge.showUrlNotification(dashboardUrl!, title: 'Dashboard Ready');
+        _flushLogs(dashboardUrl: dashboardUrl);
+        return;
       }
-      _updateState(_state.copyWith(logs: logs, dashboardUrl: dashboardUrl));
+
+      _scheduleLogFlush();
     });
   }
 
-  /// Patch /root/.openclaw/openclaw.json to clear denyCommands and set
-  /// allowCommands for all node capabilities. This is the config file the
-  /// gateway actually reads (not a separate gateway.json).
+  /// Coalesce log bursts into at most one state update per
+  /// [_logFlushInterval], bounding UI rebuilds by elapsed time rather than by
+  /// line count.
+  void _scheduleLogFlush() {
+    if (_logFlushTimer != null) return;
+    _logFlushTimer = Timer(_logFlushInterval, () {
+      _logFlushTimer = null;
+      _flushLogs();
+    });
+  }
+
+  void _flushLogs({String? dashboardUrl}) {
+    _logFlushTimer?.cancel();
+    _logFlushTimer = null;
+    _updateState(_state.copyWith(
+      logs: _logRing.toList(growable: false),
+      dashboardUrl: dashboardUrl,
+    ));
+  }
+
+  /// Append a service-generated log line through the same ring buffer.
+  void _appendLog(String message) {
+    _logRing.addLast(_ts(message));
+    while (_logRing.length > _maxLogLines) {
+      _logRing.removeFirst();
+    }
+  }
+
+  /// Append a line and return the current buffer as an immutable snapshot,
+  /// for use directly in `copyWith(logs: ...)`.
+  List<String> _appendAndSnapshot(String message) {
+    _appendLog(message);
+    return _logRing.toList(growable: false);
+  }
+
+  /// Patch /root/.openclaw/openclaw.json so the gateway authorises the node
+  /// commands this app declares.
+  ///
+  /// The canonical upstream keys are `gateway.nodes.commands.allow` and
+  /// `gateway.nodes.commands.deny` (see OpenClaw "Configuration — gateway").
+  /// Earlier versions of this app wrote `gateway.nodes.allowCommands` /
+  /// `denyCommands`, which OpenClaw ignores — so classified commands such as
+  /// `camera.snap` and `screen.record` were never actually allowed (#81, #95).
+  /// The legacy keys are removed here so they cannot fail config validation.
   Future<void> _writeNodeAllowConfig() async {
     const allowCommands = [
       'camera.snap', 'camera.clip', 'camera.list',
@@ -143,9 +213,36 @@ let c = {};
 try { c = JSON.parse(fs.readFileSync(p, "utf8")); } catch {}
 if (!c.gateway) c.gateway = {};
 if (!c.gateway.mode) c.gateway.mode = "local";
+// Ensure a persistent auth token so the app can always hand the dashboard a
+// tokenised URL (http://localhost:PORT/#token=...). Without one the Control UI
+// opens on a manual "Gateway Token" prompt instead of connecting.
+// Never overwrite an existing token, and never touch password-auth setups:
+// upstream fails startup when both token and password are set without an
+// explicit gateway.auth.mode.
+if (!c.gateway.auth) c.gateway.auth = {};
+{
+  const a = c.gateway.auth;
+  const hasToken = typeof a.token === "string" && a.token.length > 0;
+  const hasPassword = typeof a.password === "string" && a.password.length > 0;
+  if (!hasToken && !hasPassword && a.mode !== "none" && a.mode !== "password"
+      && a.mode !== "trusted-proxy") {
+    a.token = require("crypto").randomBytes(32).toString("hex");
+    if (!a.mode) a.mode = "token";
+  }
+}
 if (!c.gateway.nodes) c.gateway.nodes = {};
-c.gateway.nodes.denyCommands = [];
-c.gateway.nodes.allowCommands = $allowJson;
+// Canonical command policy keys.
+if (!c.gateway.nodes.commands) c.gateway.nodes.commands = {};
+c.gateway.nodes.commands.allow = $allowJson;
+c.gateway.nodes.commands.deny = [];
+// Drop the legacy keys this app used to write; OpenClaw never read them.
+delete c.gateway.nodes.allowCommands;
+delete c.gateway.nodes.denyCommands;
+// Silent same-host pairing so the in-app node does not need manual approval.
+if (!c.gateway.nodes.pairing) c.gateway.nodes.pairing = {};
+if (c.gateway.nodes.pairing.autoApproveLocal === undefined) {
+  c.gateway.nodes.pairing.autoApproveLocal = true;
+}
 // Fix config corruption: models entries must be objects, not strings (#83, #88)
 if (c.models && c.models.providers) {
   for (const [pid, prov] of Object.entries(c.models.providers)) {
@@ -167,7 +264,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
 
     // Direct file I/O fallback (#56): if proot/node isn't ready, write the
     // config directly on the Android filesystem so the gateway still picks
-    // up allowCommands on next start.
+    // up the command policy on next start.
     if (!prootOk) {
       try {
         final filesDir = await NativeBridge.getFilesDir();
@@ -183,10 +280,18 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
         final gw = config['gateway'] as Map<String, dynamic>;
         // Ensure gateway.mode=local so the gateway starts without --allow-unconfigured (#93, #90)
         gw.putIfAbsent('mode', () => 'local');
+        _ensureAuthToken(gw);
         gw.putIfAbsent('nodes', () => <String, dynamic>{});
         final nodes = gw['nodes'] as Map<String, dynamic>;
-        nodes['denyCommands'] = <String>[];
-        nodes['allowCommands'] = allowCommands;
+        nodes.putIfAbsent('commands', () => <String, dynamic>{});
+        final commands = nodes['commands'] as Map<String, dynamic>;
+        commands['allow'] = allowCommands;
+        commands['deny'] = <String>[];
+        nodes.remove('allowCommands');
+        nodes.remove('denyCommands');
+        nodes.putIfAbsent('pairing', () => <String, dynamic>{});
+        final pairing = nodes['pairing'] as Map<String, dynamic>;
+        pairing.putIfAbsent('autoApproveLocal', () => true);
         // Fix config corruption: models entries must be objects, not strings (#83, #88)
         _repairModelEntries(config);
         configFile.parent.createSync(recursive: true);
@@ -195,6 +300,38 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
         );
       } catch (_) {}
     }
+  }
+
+  /// Ensure `gateway.auth.token` exists so a tokenised dashboard URL can be
+  /// built. Mirrors the Node.js path in [_writeNodeAllowConfig]: never
+  /// overwrites an existing credential and leaves password / trusted-proxy /
+  /// no-auth setups alone.
+  static void _ensureAuthToken(Map<String, dynamic> gateway) {
+    gateway.putIfAbsent('auth', () => <String, dynamic>{});
+    final auth = gateway['auth'];
+    if (auth is! Map<String, dynamic>) return;
+    final token = auth['token'];
+    final password = auth['password'];
+    final mode = auth['mode'];
+    final hasToken = token is String && token.isNotEmpty;
+    final hasPassword = password is String && password.isNotEmpty;
+    if (hasToken ||
+        hasPassword ||
+        mode == 'none' ||
+        mode == 'password' ||
+        mode == 'trusted-proxy') {
+      return;
+    }
+    auth['token'] = generateGatewayToken();
+    auth.putIfAbsent('mode', () => 'token');
+  }
+
+  /// 32 random bytes as lower-case hex — matches the `[0-9a-f]+` shape the
+  /// token URL regex expects.
+  static String generateGatewayToken() {
+    final rng = Random.secure();
+    final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
   /// Repair openclaw.json on disk — fixes corrupted model entries and ensures
@@ -305,7 +442,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
       status: GatewayStatus.starting,
       clearError: true,
       clearDashboardUrl: true,
-      logs: [..._state.logs, _ts('[INFO] Starting gateway...')],
+      logs: _appendAndSnapshot('[INFO] Starting gateway...'),
     ));
 
     try {
@@ -330,6 +467,8 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
         }
       } catch (_) {}
       await _writeNodeAllowConfig();
+      // Re-read gateway.port — the user may have changed it since init() (#124).
+      await GatewayConfig.resolvePort();
       _startingAt = DateTime.now();
       await NativeBridge.startGateway();
       _subscribeLogs();
@@ -338,7 +477,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
       _updateState(_state.copyWith(
         status: GatewayStatus.error,
         errorMessage: 'Failed to start: $e',
-        logs: [..._state.logs, _ts('[ERROR] Failed to start: $e')],
+        logs: _appendAndSnapshot('[ERROR] Failed to start: $e'),
       ));
     } finally {
       _startInProgress = false;
@@ -354,7 +493,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
       await NativeBridge.stopGateway();
       _updateState(GatewayState(
         status: GatewayStatus.stopped,
-        logs: [..._state.logs, _ts('[INFO] Gateway stopped')],
+        logs: _appendAndSnapshot('[INFO] Gateway stopped'),
       ));
     } catch (e) {
       _updateState(_state.copyWith(
@@ -370,6 +509,8 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
     _initialDelayTimer = null;
     _healthTimer?.cancel();
     _healthTimer = null;
+    _logFlushTimer?.cancel();
+    _logFlushTimer = null;
   }
 
   void _startHealthCheck() {
@@ -390,7 +531,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
   Future<void> _checkHealth() async {
     try {
       final response = await http
-          .head(Uri.parse(AppConstants.gatewayUrl))
+          .head(Uri.parse(GatewayConfig.baseUrl))
           .timeout(const Duration(seconds: 3));
 
       if (response.statusCode < 500 && _state.status != GatewayStatus.running) {
@@ -401,7 +542,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
         try {
           final token = await _readTokenFromConfig();
           if (token != null) {
-            configUrl = 'http://localhost:18789/#token=$token';
+            configUrl = GatewayConfig.dashboardUrl(token);
             final prefs = PreferencesService();
             await prefs.init();
             prefs.dashboardUrl = configUrl;
@@ -412,7 +553,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
           status: GatewayStatus.running,
           startedAt: DateTime.now(),
           dashboardUrl: configUrl,
-          logs: [..._state.logs, _ts('[INFO] Gateway is healthy')],
+          logs: _appendAndSnapshot('[INFO] Gateway is healthy'),
         ));
       }
     } catch (_) {
@@ -425,13 +566,13 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
             _state.status == GatewayStatus.starting &&
             DateTime.now().difference(_startingAt!).inSeconds < 120) {
           _updateState(_state.copyWith(
-            logs: [..._state.logs, _ts('[INFO] Starting, waiting for gateway...')],
+            logs: _appendAndSnapshot('[INFO] Starting, waiting for gateway...'),
           ));
           return;
         }
         _updateState(_state.copyWith(
           status: GatewayStatus.stopped,
-          logs: [..._state.logs, _ts('[WARN] Gateway process not running')],
+          logs: _appendAndSnapshot('[WARN] Gateway process not running'),
         ));
         _cancelAllTimers();
       }
@@ -441,7 +582,7 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
   Future<bool> checkHealth() async {
     try {
       final response = await http
-          .head(Uri.parse(AppConstants.gatewayUrl))
+          .head(Uri.parse(GatewayConfig.baseUrl))
           .timeout(const Duration(seconds: 3));
       return response.statusCode < 500;
     } catch (_) {

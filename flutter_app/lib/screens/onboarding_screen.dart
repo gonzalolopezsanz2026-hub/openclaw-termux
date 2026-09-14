@@ -6,6 +6,7 @@ import 'package:xterm/xterm.dart';
 import 'package:flutter_pty/flutter_pty.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constants.dart';
+import '../services/gateway_config.dart';
 import '../services/native_bridge.dart';
 import '../services/screenshot_service.dart';
 import '../services/terminal_service.dart';
@@ -38,7 +39,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _altNotifier = ValueNotifier<bool>(false);
   final _screenshotKey = GlobalKey();
   static final _anyUrlRegex = RegExp(r'https?://[^\s<>\[\]"' "'" r'\)]+');
-  static final _tokenUrlRegex = RegExp(r'https?://(?:localhost|127\.0\.0\.1):18789/#token=[0-9a-f]+');
+  // Token URLs are matched on any port: the gateway may be bound to a custom
+  // gateway.port, in which case a hard-coded :18789 pattern never matches and
+  // onboarding silently fails to capture the token (#124).
   static final _ansiEscape = AppConstants.ansiEscape;
   /// Box-drawing and other TUI characters that break URLs when copied
   static final _boxDrawing = RegExp(r'[│┤├┬┴┼╮╯╰╭─╌╴╶┌┐└┘◇◆]+');
@@ -147,8 +150,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             .replaceAll(_boxDrawing, '')
             .replaceAll(RegExp(r'\s+'), '');
         // Save token URL to preferences if found
-        final tokenMatch = _tokenUrlRegex.firstMatch(cleanForUrl);
+        final tokenMatch =
+            GatewayConfig.anyPortTokenUrlRegex.firstMatch(cleanForUrl);
         if (tokenMatch != null) {
+          // Keep the resolved port in step with what onboarding printed.
+          final port = GatewayConfig.parsePort(tokenMatch.group(1));
+          if (port != null) GatewayConfig.setCachedPort(port);
           _saveTokenUrl(tokenMatch.group(0)!);
         }
         // Detect onboarding completion from output text

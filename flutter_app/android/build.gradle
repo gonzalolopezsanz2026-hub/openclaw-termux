@@ -14,12 +14,16 @@ rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
     // Provide flutter compilation defaults for plugins whose build.gradle
-    // references flutter.compileSdkVersion before the Flutter tooling injects it.
+    // references flutter.compileSdkVersion / flutter.ndkVersion before the
+    // Flutter tooling injects it. ndkVersion must be present or plugins such
+    // as `jni` fail with "Parameter specified as non-null is null:
+    // LibraryExtension.setNdkVersion".
     if (project.name != "app") {
         project.ext.set("flutter", [
-            compileSdkVersion: 35,
+            compileSdkVersion: 36,
             minSdkVersion: 29,
-            targetSdkVersion: 36
+            targetSdkVersion: 36,
+            ndkVersion: "27.0.12077973"
         ])
     }
 }

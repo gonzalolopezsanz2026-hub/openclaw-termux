@@ -193,11 +193,16 @@ class NodeProvider extends ChangeNotifier with WidgetsBindingObserver {
     _lastGatewayState = gatewayState;
 
     if (!wasRunning && isRunning && _state.isDisabled) {
-      // Gateway just started - auto-enable node if previously enabled
+      // Gateway just started - auto-enable node if previously enabled.
+      // Drop any cached auth token first: the gateway may have generated or
+      // rotated gateway.auth.token on this start, and reusing a stale value
+      // causes TOKEN_INVALID reconnect loops (#94).
+      _nodeService.clearCachedToken();
       _checkAutoConnect();
     } else if (wasRunning && !isRunning && !_state.isDisabled) {
       // Gateway stopped - disconnect node and stop foreground service
       _stopWatchdog();
+      _nodeService.clearCachedToken();
       _nodeService.disconnect();
       NativeBridge.stopNodeService();
     }

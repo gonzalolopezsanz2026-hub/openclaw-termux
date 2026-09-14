@@ -40,7 +40,8 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          # Must stay >= 3.27 — the themes use CardThemeData/DialogThemeData.
+          flutter-version: '3.44.8'
           channel: stable
           cache: true
 
@@ -85,21 +86,32 @@ jobs:
       - name: Verify PRoot binaries
         run: |
           echo "Checking jniLibs contents..."
+          FAIL=0
+          # libandroid-shmem.so and libtalloc.so are proot's declared Depends.
+          # A missing one only shows up at runtime as
+          # "CANNOT LINK EXECUTABLE ... library not found", i.e. the app fails
+          # setup with PROOT_ERROR on a user's device rather than failing here.
           for abi in arm64-v8a armeabi-v7a x86_64; do
-            for lib in libproot.so libprootloader.so; do
+            for lib in libproot.so libprootloader.so libtalloc.so libandroid-shmem.so; do
               FILE="flutter_app/android/app/src/main/jniLibs/${abi}/${lib}"
               if [ ! -f "$FILE" ]; then
                 echo "ERROR: Missing $FILE"
-                exit 1
+                FAIL=1
+                continue
               fi
               SIZE=$(stat -c%s "$FILE")
               if [ "$SIZE" -lt 1000 ]; then
-                echo "WARN: $FILE looks like a placeholder (${SIZE} bytes)"
+                echo "ERROR: $FILE looks like a placeholder (${SIZE} bytes)"
+                FAIL=1
               else
                 echo "OK: $FILE (${SIZE} bytes)"
               fi
             done
           done
+          if [ "$FAIL" -ne 0 ]; then
+            echo "PRoot binaries are incomplete — the APK would fail setup on device."
+            exit 1
+          fi
 
       - name: Get Flutter dependencies
         working-directory: flutter_app
@@ -108,7 +120,10 @@ jobs:
       - name: Analyze Dart code
         working-directory: flutter_app
         run: flutter analyze --no-fatal-infos
-        continue-on-error: true
+
+      - name: Run Dart tests
+        working-directory: flutter_app
+        run: flutter test
 
       - name: Build fat APK (all ABIs)
         working-directory: flutter_app

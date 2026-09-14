@@ -12,6 +12,22 @@ class AiProvider {
   final List<String> defaultModels;
   final String apiKeyHint;
 
+  /// Explicit OpenClaw provider API flavour (e.g. `ollama`). Written to
+  /// `models.providers.<id>.api` when set; omitted otherwise.
+  final String? api;
+
+  /// False for local runtimes that need no real credential (e.g. Ollama).
+  final bool requiresApiKey;
+
+  /// Placeholder credential written when the user supplies none.
+  final String? defaultApiKey;
+
+  /// Whether the user can point this provider at a different host.
+  final bool editableBaseUrl;
+
+  /// Optional per-provider request budget, for slow local models.
+  final int? timeoutSeconds;
+
   const AiProvider({
     required this.id,
     required this.name,
@@ -21,6 +37,11 @@ class AiProvider {
     required this.baseUrl,
     required this.defaultModels,
     required this.apiKeyHint,
+    this.api,
+    this.requiresApiKey = true,
+    this.defaultApiKey,
+    this.editableBaseUrl = false,
+    this.timeoutSeconds,
   });
 
   static const anthropic = AiProvider(
@@ -147,6 +168,35 @@ class AiProvider {
     apiKeyHint: 'sk-...',
   );
 
+  /// Local/self-hosted Ollama.
+  ///
+  /// OpenClaw talks to Ollama's **native** API (`/api/chat`), so the base URL
+  /// must NOT include `/v1` — the OpenAI-compatible path breaks tool calling.
+  /// `api: "ollama"` pins native behaviour explicitly. A placeholder key is
+  /// used because OpenClaw only needs a non-empty credential for availability
+  /// checks on a local host.
+  static const ollama = AiProvider(
+    id: 'ollama',
+    name: 'Ollama',
+    description: 'Local and self-hosted open models (no API key needed)',
+    icon: Icons.dns,
+    color: Color(0xFF0F172A),
+    baseUrl: 'http://127.0.0.1:11434',
+    api: 'ollama',
+    requiresApiKey: false,
+    defaultApiKey: 'ollama-local',
+    editableBaseUrl: true,
+    timeoutSeconds: 300,
+    defaultModels: [
+      'qwen3:8b',
+      'qwen3:32b',
+      'llama3.3',
+      'gemma3:12b',
+      'deepseek-r1:8b',
+    ],
+    apiKeyHint: 'leave blank for a local Ollama host',
+  );
+
   /// All available AI providers.
   static const all = [
     anthropic,
@@ -157,5 +207,6 @@ class AiProvider {
     deepseek,
     xai,
     minimax,
+    ollama,
   ];
 }

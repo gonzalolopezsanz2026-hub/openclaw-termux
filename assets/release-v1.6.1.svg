@@ -97,5 +97,5 @@
   <!-- Footer -->
   <line x1="50" y1="575" x2="1150" y2="575" stroke="#ffffff" stroke-width="0.5" stroke-opacity="0.1"/>
   <text x="60" y="605" font-family="system-ui, sans-serif" font-size="13" fill="#556677">github.com/mithun50/openclaw-termux</text>
-  <text x="1140" y="605" font-family="system-ui, sans-serif" font-size="13" fill="#556677" text-anchor="end">by Mithun Gowda B  |  NextGenX  |  MIT License</text>
+  <text x="1140" y="605" font-family="system-ui, sans-serif" font-size="13" fill="#556677" text-anchor="end">by Mithun Gowda B  |  MIT License</text>
 </svg>

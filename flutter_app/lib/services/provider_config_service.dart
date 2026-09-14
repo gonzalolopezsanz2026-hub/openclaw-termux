@@ -13,7 +13,7 @@ class ProviderConfigService {
 
   /// Read the current config and return a map with:
   /// - `activeModel`: the current primary model string (or null)
-  /// - `providers`: Map<providerId, {apiKey, model}> for configured providers
+  /// - `providers`: `Map<providerId, {apiKey, model}>` for configured providers
   static Future<Map<String, dynamic>> readConfig() async {
     try {
       final content = await NativeBridge.readRootfsFile(_configPath);
@@ -56,15 +56,35 @@ class ProviderConfigService {
   /// Save a provider's API key and set its model as the active model.
   /// Tries a Node.js one-liner in proot first, then falls back to a direct
   /// file write via NativeBridge.writeRootfsFile if proot/DNS is unavailable.
+  ///
+  /// [baseUrlOverride] lets the user point a provider at a different host
+  /// (used by Ollama, whose daemon may live on the LAN).
   static Future<void> saveProviderConfig({
     required AiProvider provider,
     required String apiKey,
     required String model,
+    String? baseUrlOverride,
   }) async {
+    // Local runtimes such as Ollama need no real credential, but OpenClaw
+    // wants a non-empty value for availability checks.
+    final effectiveKey = apiKey.trim().isEmpty
+        ? (provider.defaultApiKey ?? '')
+        : apiKey.trim();
+    final effectiveBaseUrl =
+        (baseUrlOverride != null && baseUrlOverride.trim().isNotEmpty)
+            ? _normalizeBaseUrl(provider, baseUrlOverride.trim())
+            : provider.baseUrl;
+    // Model refs are provider-qualified for providers with an explicit api
+    // flavour (e.g. `ollama/qwen3:8b`).
+    final modelRef = provider.api != null ? '${provider.id}/$model' : model;
+
     final providerIdJson = jsonEncode(provider.id);
-    final apiKeyJson = jsonEncode(apiKey);
-    final baseUrlJson = jsonEncode(provider.baseUrl);
+    final apiKeyJson = jsonEncode(effectiveKey);
+    final baseUrlJson = jsonEncode(effectiveBaseUrl);
     final modelJson = jsonEncode(model);
+    final modelRefJson = jsonEncode(modelRef);
+    final apiJson = provider.api != null ? jsonEncode(provider.api) : null;
+    final timeoutJson = provider.timeoutSeconds?.toString();
 
     // Build the provider object with the model as an object containing `id`,
     // not a bare string. OpenClaw expects: models: [{ id: "model-name" }].
@@ -79,12 +99,12 @@ if (!c.models.providers) c.models.providers = {};
 c.models.providers[$providerIdJson] = {
   apiKey: $apiKeyJson,
   baseUrl: $baseUrlJson,
-  models: [{ id: $modelJson }]
+${apiJson != null ? '  api: $apiJson,\n' : ''}${timeoutJson != null ? '  timeoutSeconds: $timeoutJson,\n' : ''}  models: [{ id: $modelJson, name: $modelJson }]
 };
 if (!c.agents) c.agents = {};
 if (!c.agents.defaults) c.agents.defaults = {};
 if (!c.agents.defaults.model) c.agents.defaults.model = {};
-c.agents.defaults.model.primary = $modelJson;
+c.agents.defaults.model.primary = $modelRefJson;
 if (!c.gateway) c.gateway = {};
 if (!c.gateway.mode) c.gateway.mode = "local";
 fs.mkdirSync(require("path").dirname(p), { recursive: true });
@@ -98,20 +118,35 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
     } catch (_) {
       // Fallback: write config directly via NativeBridge file I/O
       await _saveConfigDirect(
-        providerId: provider.id,
-        apiKey: apiKey,
-        baseUrl: provider.baseUrl,
+        provider: provider,
+        apiKey: effectiveKey,
+        baseUrl: effectiveBaseUrl,
         model: model,
+        modelRef: modelRef,
       );
     }
   }
 
+  /// Ollama's native API must not carry a `/v1` suffix — that path selects
+  /// OpenAI-compatible mode, where tool calling is unreliable.
+  static String _normalizeBaseUrl(AiProvider provider, String url) {
+    var normalized = url;
+    while (normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    if (provider.api == 'ollama' && normalized.endsWith('/v1')) {
+      normalized = normalized.substring(0, normalized.length - 3);
+    }
+    return normalized;
+  }
+
   /// Direct file-write fallback that doesn't depend on proot or DNS.
   static Future<void> _saveConfigDirect({
-    required String providerId,
+    required AiProvider provider,
     required String apiKey,
     required String baseUrl,
     required String model,
+    required String modelRef,
   }) async {
     Map<String, dynamic> config = {};
     try {
@@ -126,17 +161,20 @@ fs.writeFileSync(p, JSON.stringify(c, null, 2));
     // Merge provider entry — models must be objects with `id`, not bare strings (#83, #88).
     config['models'] ??= <String, dynamic>{};
     (config['models'] as Map<String, dynamic>)['providers'] ??= <String, dynamic>{};
-    ((config['models'] as Map<String, dynamic>)['providers'] as Map<String, dynamic>)[providerId] = {
+    ((config['models'] as Map<String, dynamic>)['providers'] as Map<String, dynamic>)[provider.id] = {
       'apiKey': apiKey,
       'baseUrl': baseUrl,
-      'models': [{'id': model}],
+      if (provider.api != null) 'api': provider.api,
+      if (provider.timeoutSeconds != null)
+        'timeoutSeconds': provider.timeoutSeconds,
+      'models': [{'id': model, 'name': model}],
     };
 
     // Set active model
     config['agents'] ??= <String, dynamic>{};
     (config['agents'] as Map<String, dynamic>)['defaults'] ??= <String, dynamic>{};
     ((config['agents'] as Map<String, dynamic>)['defaults'] as Map<String, dynamic>)['model'] ??= <String, dynamic>{};
-    (((config['agents'] as Map<String, dynamic>)['defaults'] as Map<String, dynamic>)['model'] as Map<String, dynamic>)['primary'] = model;
+    (((config['agents'] as Map<String, dynamic>)['defaults'] as Map<String, dynamic>)['model'] as Map<String, dynamic>)['primary'] = modelRef;
 
     // Ensure gateway.mode is set (#93, #90)
     config['gateway'] ??= <String, dynamic>{};

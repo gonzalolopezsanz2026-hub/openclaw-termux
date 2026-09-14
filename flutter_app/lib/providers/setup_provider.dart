@@ -32,6 +32,23 @@ class SetupProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Repair a partial install without re-downloading the Ubuntu rootfs.
+  Future<void> runRepair() async {
+    if (_isRunning) return;
+    _isRunning = true;
+    notifyListeners();
+
+    await _bootstrapService.runRepair(
+      onProgress: (state) {
+        _state = state;
+        notifyListeners();
+      },
+    );
+
+    _isRunning = false;
+    notifyListeners();
+  }
+
   void reset() {
     _state = const SetupState();
     _isRunning = false;

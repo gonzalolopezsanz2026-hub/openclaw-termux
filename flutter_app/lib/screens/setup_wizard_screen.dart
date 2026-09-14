@@ -11,7 +11,12 @@ import 'onboarding_screen.dart';
 import 'package_install_screen.dart';
 
 class SetupWizardScreen extends StatefulWidget {
-  const SetupWizardScreen({super.key});
+  /// True when the rootfs already exists and only missing pieces (Node.js,
+  /// OpenClaw) need reinstalling. Skips the ~500MB rootfs download and starts
+  /// automatically, since the user did not choose to be here (#125).
+  final bool repairMode;
+
+  const SetupWizardScreen({super.key, this.repairMode = false});
 
   @override
   State<SetupWizardScreen> createState() => _SetupWizardScreenState();
@@ -20,6 +25,19 @@ class SetupWizardScreen extends StatefulWidget {
 class _SetupWizardScreenState extends State<SetupWizardScreen> {
   bool _started = false;
   Map<String, bool> _pkgStatuses = {};
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.repairMode) {
+      // Repair is not a user-initiated action, so begin immediately rather
+      // than showing a button the user has to discover.
+      _started = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.read<SetupProvider>().runRepair();
+      });
+    }
+  }
 
   Future<void> _refreshPkgStatuses() async {
     final statuses = await PackageService.checkAllStatuses();
@@ -64,16 +82,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Setup OpenClaw',
+                    widget.repairMode ? 'Repair OpenClaw' : 'Setup OpenClaw',
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _started
-                        ? 'Setting up the environment. This may take several minutes.'
-                        : 'This will download Ubuntu, Node.js, and OpenClaw into a self-contained environment.',
+                    widget.repairMode
+                        ? 'Some components are missing. Reinstalling them — '
+                            'the Ubuntu rootfs is kept, so this is quicker than a full setup.'
+                        : _started
+                            ? 'Setting up the environment. This may take several minutes.'
+                            : 'This will download Ubuntu, Node.js, and OpenClaw into a self-contained environment.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -127,7 +148,11 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             ? null
                             : () {
                                 setState(() => _started = true);
-                                provider.runSetup();
+                                if (widget.repairMode) {
+                                  provider.runRepair();
+                                } else {
+                                  provider.runSetup();
+                                }
                               },
                         icon: const Icon(Icons.download),
                         label: Text(_started ? 'Retry Setup' : 'Begin Setup'),
@@ -147,7 +172,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   const SizedBox(height: 16),
                   Center(
                     child: Text(
-                      'by ${AppConstants.authorName} | ${AppConstants.orgName}',
+                      'by ${AppConstants.authorName}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

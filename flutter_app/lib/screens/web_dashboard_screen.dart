@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import '../constants.dart';
+import '../services/gateway_config.dart';
 import '../services/preferences_service.dart';
 
 class WebDashboardScreen extends StatefulWidget {
@@ -51,7 +51,7 @@ class _WebDashboardScreenState extends State<WebDashboardScreen> {
       await prefs.init();
       url = prefs.dashboardUrl;
     }
-    _controller.loadRequest(Uri.parse(url ?? AppConstants.gatewayUrl));
+    _controller.loadRequest(Uri.parse(url ?? GatewayConfig.baseUrl));
   }
 
   @override

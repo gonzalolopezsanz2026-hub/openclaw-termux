@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../app.dart';
-import '../constants.dart';
+import '../services/gateway_config.dart';
 import '../models/gateway_state.dart';
 import '../providers/gateway_provider.dart';
 import '../screens/logs_screen.dart';
@@ -54,7 +54,7 @@ class GatewayControls extends StatelessWidget {
                             );
                           },
                           child: Text(
-                            state.dashboardUrl ?? AppConstants.gatewayUrl,
+                            state.dashboardUrl ?? GatewayConfig.baseUrl,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.primary,
                               fontFamily: 'monospace',
@@ -68,7 +68,7 @@ class GatewayControls extends StatelessWidget {
                         icon: const Icon(Icons.copy, size: 18),
                         tooltip: 'Copy URL',
                         onPressed: () {
-                          final url = state.dashboardUrl ?? AppConstants.gatewayUrl;
+                          final url = state.dashboardUrl ?? GatewayConfig.baseUrl;
                           Clipboard.setData(ClipboardData(text: url));
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
